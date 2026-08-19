@@ -1,0 +1,157 @@
+name: 问月塔罗 · Android APK 构建
+
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+      - 'privacy-policy-wytl.html'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: '构建类型'
+        required: false
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+
+env:
+  NODE_VERSION: '20'
+  JAVA_DISTRIBUTION: 'zulu'
+  JAVA_VERSION: '17'
+  ANDROID_COMPILE_SDK: '34'
+  ANDROID_BUILD_TOOLS: '34.0.0'
+
+jobs:
+  build-apk:
+    name: 构建 Android APK (${{ github.event.inputs.build_type || 'debug' }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      # ============================================================
+      # 1. 检出源码
+      # ============================================================
+      - name: 📥 检出源码
+        uses: actions/checkout@v4
+
+      # ============================================================
+      # 2. 准备 Node.js 环境 & 安装依赖
+      # ============================================================
+      - name: ⚙️ 设置 Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 安装 npm 依赖
+        run: npm ci || npm install --no-audit --no-fund
+
+      # ============================================================
+      # 3. 构建前端（Vite build）
+      # ============================================================
+      - name: 🛠 构建前端 Web 资源
+        run: npm run build
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
+
+      # ============================================================
+      # 4. 同步到 Capacitor Android 工程
+      # ============================================================
+      - name: 🔌 同步前端构建产物到 Capacitor (cap sync android)
+        run: npx cap sync android
+
+      # ============================================================
+      # 5. 准备 Java 17 / Android SDK（capacitor-android 14 需要 JDK 17+）
+      # ============================================================
+      - name: ☕ 设置 JDK ${{ env.JAVA_VERSION }} (${{ env.JAVA_DISTRIBUTION }})
+        uses: actions/setup-java@v4
+        with:
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: 🤖 缓存 Android SDK & 构建产物
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android/build-cache
+            ~/.android/cache
+            android/.gradle/caches
+          key: ${{ runner.os }}-android-${{ hashFiles('android/app/build.gradle', 'android/build.gradle', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-android-
+
+      - name: 🛠 设置 Android SDK (compileSdk ${{ env.ANDROID_COMPILE_SDK }}, build-tools ${{ env.ANDROID_BUILD_TOOLS }})
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-${{ env.ANDROID_COMPILE_SDK }} build-tools;${{ env.ANDROID_BUILD_TOOLS }}'
+
+      # ============================================================
+      # 6. 赋予 gradlew 可执行权限并构建 APK
+      # ============================================================
+      - name: 🔑 赋予 Gradle Wrapper 可执行权限
+        run: chmod +x ./android/gradlew
+
+      - name: 🏗 执行 Gradle 构建 APK
+        working-directory: ./android
+        run: |
+          BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"
+          if [ "$BUILD_TYPE" = "release" ]; then
+            TASK="assembleRelease"
+          else
+            TASK="assembleDebug"
+          fi
+          echo ">> ./gradlew $TASK --stacktrace"
+          ./gradlew "$TASK" --stacktrace
+        env:
+          GRADLE_OPTS: '-Dorg.gradle.jvmargs="-Xmx4096m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"'
+
+      # ============================================================
+      # 7. 上载 APK 工件
+      # ============================================================
+      - name: 🔍 列出构建产物
+        run: |
+          echo "--- android/app/build/outputs/apk 目录 ---"
+          find android/app/build/outputs/apk -type f \( -name '*.apk' -o -name '*.aab' \) || true
+          echo ""
+          echo "--- mapping 文件（如有）---"
+          find android/app/build/outputs -name 'mapping.txt' || true
+
+      - name: 📦 上载 Debug APK 工件
+        if: (github.event.inputs.build_type || 'debug') == 'debug'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wenyuetaluo-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: 📦 上载 Release APK 工件
+        if: (github.event.inputs.build_type || 'debug') == 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wenyuetaluo-release-apk
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: warn
+          retention-days: 30
+
+      # ============================================================
+      # 8. 输出构建摘要
+      # ============================================================
+      - name: 📋 构建完成说明
+        run: |
+          echo "## 问月塔罗 APK 构建完成 🌙"
+          echo ""
+          echo "- 构建类型: ${{ github.event.inputs.build_type || 'debug' }}"
+          echo "- 版本号来源于 package.json 与 build.gradle versionName"
+          echo "- 下载入口：当前 Action Run 的 Artifacts 区块"
+          echo ""
+          echo "✅ Debug 包（默认）：可直接安装至 Android 设备体验"
+          echo "ℹ️ Release 包：未签名，使用前需自行 apksigner 签名"

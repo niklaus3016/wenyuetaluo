@@ -1,0 +1,7 @@
+{
+  "name": "问月塔罗",
+  "icon": "wytl512.png",
+  "description": "专属你的深夜治愈占卜空间 - 沉浸式塔罗牌占卜应用",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

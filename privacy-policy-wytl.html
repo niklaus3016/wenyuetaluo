@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隐私政策 - 问月塔罗 · MOON TAROT</title>
+    <!-- 字体：思源宋体（标题）+ 系统无衬线（正文） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ============================================================
+           问月塔罗 · 深夜治愈风 色板（与 App 内完全一致）
+           ============================================================ */
+        :root {
+            --c-bg:            #0E1526;   /* 主背景 深夜蓝 */
+            --c-panel-bg:      #161F38;   /* 卡面 */
+            --c-panel-bg-2:    #1A2247;   /* 次卡面/头部渐变 */
+            --c-gold:          #D4C296;   /* 主金 */
+            --c-gold-deep:     #B2996B;   /* 深色金（按钮渐变终点） */
+            --c-gold-soft:     #E7D6A9;   /* 浅金 */
+            --c-purple:        #7B68EE;   /* 月神紫 */
+            --c-purple-light:  #9B88F7;   /* 浅紫 */
+            --c-text:          #C9D4FF;   /* 正文 浅蓝灰 */
+            --c-text-strong:   #F5F7FF;   /* 强文本 近白 */
+            --c-text-muted:    #8D9BC8;   /* 次级灰 */
+            --c-text-sub:      #A8B4D8;   /* 再次级 */
+            --c-text-faint:    #6B76A0;   /* 最淡灰（版权/脚注） */
+            --c-border:        rgba(212, 194, 150, 0.15);  /* 金色细边 */
+            --c-border-soft:   rgba(212, 194, 150, 0.20);
+            --c-divider:       rgba(212, 194, 150, 0.20);  /* 分隔线 */
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            background: var(--c-bg);
+            color: var(--c-text);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI',
+                         'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+                         'Helvetica Neue', Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            line-height: 1.9;
+            font-size: 15px;
+        }
+
+        /* 背景月光晕染 —— 与 App 顶部星云一致 */
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::before {
+            top: -10%; left: -10%;
+            width: 50vw; height: 50vw;
+            max-width: 500px; max-height: 500px;
+            background: rgba(123, 104, 238, 0.12);
+        }
+        body::after {
+            bottom: -10%; right: -10%;
+            width: 50vw; height: 50vw;
+            max-width: 500px; max-height: 500px;
+            background: rgba(212, 194, 150, 0.10);
+        }
+
+        .page-wrap {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            padding: 32px 16px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 860px;  /* 与弹窗 max-w-2xl (768px+padding) 对齐 */
+            background: rgba(22, 31, 56, 0.92);
+            border: 1px solid var(--c-border-soft);
+            border-radius: 28px;
+            box-shadow: 0 0 60px rgba(123, 104, 238, 0.18);
+            padding: 48px 40px 48px 40px;
+            backdrop-filter: blur(8px);
+        }
+
+        /* ========== 顶部品牌胶囊标题区 ========== */
+        .hero { text-align: center; margin-bottom: 40px; }
+        .brand-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 999px;
+            background: rgba(212, 194, 150, 0.10);
+            border: 1px solid var(--c-border-soft);
+            margin-bottom: 20px;
+        }
+        .brand-pill span {
+            color: var(--c-gold);
+            font-size: 12px;
+            letter-spacing: 0.2em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+        .hero h1 {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--c-gold);
+            margin-bottom: 12px;
+            letter-spacing: -0.2px;
+        }
+        .hero .date {
+            font-size: 14px;
+            color: var(--c-text-muted);
+        }
+        .hero .date strong {
+            color: var(--c-text-sub);
+            font-weight: 600;
+        }
+
+        /* ========== 引言卡片（金色左边框） ========== */
+        .intro-card {
+            padding: 20px;
+            border-radius: 16px;
+            background: linear-gradient(to right,
+                rgba(212, 194, 150, 0.10),
+                rgba(123, 104, 238, 0.05),
+                transparent);
+            border-left: 4px solid var(--c-gold);
+            margin-bottom: 32px;
+        }
+        .intro-card p { color: var(--c-text); }
+
+        /* ========== 正文基础 ========== */
+        p {
+            color: var(--c-text);
+            margin-bottom: 24px;
+            font-size: 15px;
+            text-align: left;
+        }
+        p:last-child { margin-bottom: 0; }
+        strong {
+            color: var(--c-text-strong);
+            font-weight: 600;
+        }
+        strong.gold   { color: var(--c-gold); }
+        strong.purple { color: var(--c-purple-light); }
+
+        /* ========== 章节标题 ========== */
+        h2 {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--c-gold);
+            margin-top: 40px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--c-divider);
+            letter-spacing: -0.1px;
+        }
+        h2:first-of-type { margin-top: 0; }
+
+        /* ========== 列表 ========== */
+        ol, ul {
+            margin-left: 24px;
+            margin-bottom: 24px;
+        }
+        li {
+            color: var(--c-text);
+            margin-bottom: 12px;
+            font-size: 15px;
+            line-height: 1.9;
+            padding-left: 4px;
+        }
+        li::marker {
+            color: var(--c-text-muted);
+        }
+        ol > li { margin-bottom: 14px; }
+
+        /* ========== 联系我们卡片 ========== */
+        .contact-card {
+            padding: 20px;
+            border-radius: 16px;
+            background: rgba(26, 34, 71, 0.80);
+            border: 1px solid var(--c-border);
+            margin-bottom: 24px;
+        }
+        .contact-card p {
+            margin-bottom: 8px;
+            font-size: 15px;
+            color: var(--c-text);
+        }
+        .contact-card p:last-child { margin-bottom: 0; }
+        .contact-card strong { color: var(--c-gold); }
+
+        /* ========== 页脚 ========== */
+        .footer {
+            margin-top: 40px;
+            padding-top: 32px;
+            border-top: 1px solid var(--c-divider);
+            text-align: center;
+        }
+        .footer p {
+            text-align: center;
+            margin-bottom: 8px;
+            color: var(--c-text-muted);
+            font-size: 15px;
+        }
+        .footer p:last-child {
+            margin-top: 16px;
+            margin-bottom: 0;
+            font-size: 12px;
+            color: var(--c-text-faint);
+        }
+
+        /* ========== 响应式（移动端） ========== */
+        @media (max-width: 640px) {
+            .page-wrap  { padding: 16px 8px; }
+            .container  { padding: 32px 20px; border-radius: 22px; }
+            .hero h1    { font-size: 22px; }
+            h2          { font-size: 17px; margin-top: 32px; }
+            p, li       { font-size: 14px; }
+            .intro-card { padding: 16px; }
+            .contact-card { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrap">
+        <div class="container">
+
+            <!-- ========== 顶部品牌胶囊 + 标题 ========== -->
+            <div class="hero">
+                <div class="brand-pill"><span>MOON TAROT · 问月塔罗</span></div>
+                <h1>🔒 隐私政策</h1>
+                <p class="date"><strong>生效日期</strong>：2026年08月20日</p>
+            </div>
+
+            <!-- ========== 引言卡片（金色左边框） ========== -->
+            <div class="intro-card">
+                <p>
+                    欢迎使用「<strong class="gold">问月塔罗</strong>」（以下简称"本应用"）。本应用由
+                    <strong class="gold"> 深圳丰佰瑞网络科技有限公司 </strong>
+                    （以下简称"我们"）开发并运营。我们深知个人信息对您的重要性，将严格遵守
+                    《中华人民共和国个人信息保护法》《网络安全法》等相关法律法规，恪守
+                    <strong class="purple">"数据不入云、权限零索取、隐私不出设备"</strong>
+                    的极致隐私保护理念，守护您的每一次心愿与抽牌。
+                </p>
+            </div>
+
+            <p>
+                本隐私政策旨在说明我们如何收集、使用、存储和保护您在使用本应用过程中提供的个人信息，
+                以及您对这些信息所享有的权利。请您在使用本应用前仔细阅读并充分理解本政策的全部内容，
+                尤其是<strong>加粗的条款</strong>。
+                如您对本政策有任何疑问、意见或建议，可通过本政策末尾提供的联系方式与我们联系。
+            </p>
+
+            <!-- ========== 一、我们收集的信息 ========== -->
+            <h2>一、我们收集的信息</h2>
+            <p>
+                问月塔罗遵循<strong>"最少够用"</strong>原则。
+                在您使用本应用的过程中，我们仅会收集以下<strong>存储于您本人设备本地</strong>的信息，
+                <strong class="gold">绝不会上传到任何远程服务器</strong>：
+            </p>
+            <ol>
+                <li>
+                    <strong>占卜记录与收藏</strong>：您在使用本应用过程中主动产生的
+                    <strong class="purple"> 占卜问题、抽牌结果、牌阵选择、历史记录、卡牌收藏、每日月运结果</strong>。
+                    这些数据是本应用的核心功能内容，用于为您提供历史复盘、占卜回顾、收藏管理等服务，全部保存于您的设备本地浏览器存储空间（localStorage）。
+                </li>
+                <li>
+                    <strong>个性化偏好设置</strong>：您主动选择的
+                    <strong class="purple"> 音效开关、背景音量、动画模式（丝滑/省电）、当前静心音景</strong>。
+                    这些设置仅用于给您提供更贴合使用习惯的沉浸式体验。
+                </li>
+                <li>
+                    <strong>零敏感设备信息</strong>：
+                    与多数应用不同，本应用<strong class="gold">不采集设备型号、操作系统版本、IMEI、Android ID、MAC 地址、IP 地址</strong>等任何设备标识符。
+                    打包为 Android App 后仅声明最低限度的 INTERNET 权限，用于加载 CDN 上的塔罗牌图片资源，该请求不携带任何用户身份信息。
+                </li>
+            </ol>
+
+            <!-- ========== 二、我们如何使用收集的信息 ========== -->
+            <h2>二、我们如何使用收集的信息</h2>
+            <p>
+                我们仅会在以下<strong>合法、正当、必要、且不出本机</strong>的范围内使用您的信息：
+            </p>
+            <ol>
+                <li>
+                    <strong>提供与维护核心服务</strong>：使用您的占卜记录、收藏和设置偏好，为您实现牌阵占卜、历史复盘、卡牌百科、每日月运、静心白噪音、个性化界面设置等核心功能。
+                </li>
+                <li>
+                    <strong>不做任何数据分析与统计</strong>：
+                    我们<strong class="gold">不接入任何第三方统计 SDK、不做用户画像、不做埋点分析、不投放广告</strong>。
+                    您的抽牌与心愿只属于您自己。
+                </li>
+            </ol>
+
+            <!-- ========== 三、我们如何共享、转让和公开披露信息 ========== -->
+            <h2>三、我们如何共享、转让和公开披露信息</h2>
+            <p>
+                我们郑重承诺：<strong class="gold">您的所有占卜记录、收藏与偏好数据 100% 存储于您本人设备本地</strong>，
+                我们的服务器上不会留存任何副本。因此不存在向任何第三方共享、转让或公开披露您个人信息的基础：
+            </p>
+            <ol>
+                <li>
+                    <strong>零第三方 SDK</strong>：
+                    本应用未集成任何第三方广告、统计、推送、支付、定位、埋点类 SDK。除必需的 Capacitor（WebView 桥接）外无其他数据共享方。
+                </li>
+                <li>
+                    <strong>法定情形</strong>：
+                    如遇法律法规的强制性规定或有权行政、司法机关的合法调取请求，我们仍会在法定范围内尽最大努力保护您的隐私权益——但因本应用无云端存储，我们客观上无法提供您的本地占卜数据内容。
+                </li>
+                <li>
+                    <strong>获得明确同意</strong>：
+                    任何其他情形下的信息共享，我们均会单独获取您的明确书面同意。
+                </li>
+            </ol>
+
+            <!-- ========== 四、我们如何存储和保护信息 ========== -->
+            <h2>四、我们如何存储和保护信息</h2>
+            <ol>
+                <li>
+                    <strong>存储地点</strong>：
+                    您的全部个人信息仅存储于<strong class="purple">您所使用设备的本地浏览器 localStorage</strong>（或 Android App 的 WebView 本地存储区）中，存储地域即您本人所在位置，<strong class="gold">不会跨境、不会上传、不会同步</strong>。
+                </li>
+                <li>
+                    <strong>存储期限</strong>：
+                    我们会在您主动删除前持续保留这些数据；您可以随时在「设置」中一键清空全部本地数据，或通过卸载 App、清除浏览器数据的方式一次性彻底销毁。
+                </li>
+                <li>
+                    <strong>安全措施</strong>：
+                    数据因完全本地化而天然享有物理隔离的安全优势。我们同时要求自身仅使用最小必要的存储键、不记录敏感明文；即便在本地，占卜问题、结果等内容也不会离开本应用沙箱环境。
+                </li>
+            </ol>
+
+            <!-- ========== 五、您的权利 ========== -->
+            <h2>五、您的权利</h2>
+            <p>
+                根据相关法律法规，结合本应用极致本地化的特点，您对您的个人信息享有以下完整权利：
+            </p>
+            <ol>
+                <li><strong>访问权</strong>：您可以随时在「占卜记录」与「我的收藏」中查看全部占卜历史与卡牌收藏。</li>
+                <li><strong>更正权</strong>：如您需要调整收藏或历史，可在「卡牌百科」中取消收藏，或在「占卜记录」中删除单条记录。</li>
+                <li>
+                    <strong>删除权</strong>：您可以单条删除历史记录，也可以在「设置 → 数据与隐私」中点击
+                    <strong class="gold">「一键清空全部数据」</strong>，应用将立即且不可逆转地清空全部本地存储内容。
+                </li>
+                <li>
+                    <strong>数据导出与可携带权</strong>：由于所有数据均在本地，您可以通过系统级备份、截图保存、以及在「占卜结果」中
+                    <strong class="purple">生成长图保存</strong>等方式自由导出您的数据。
+                </li>
+                <li><strong>撤回同意权</strong>：您可以通过本政策第八节的联系方式随时撤回此前的同意，我们不会因此对您设置任何门槛或差别待遇。</li>
+            </ol>
+
+            <!-- ========== 六、未成年人保护 ========== -->
+            <h2>六、未成年人保护</h2>
+            <p>
+                我们非常重视对未成年人个人信息的保护。如您是未满 14 周岁的未成年人，在使用本应用前，
+                应在监护人的指导下仔细阅读本政策，并征得监护人的同意。
+                如我们发现自己在未事先获得监护人可验证同意的情况下收集了未成年人的个人信息，
+                将立即通过技术手段协助监护人在本地销毁相关数据。
+            </p>
+
+            <!-- ========== 七、本政策的更新 ========== -->
+            <h2>七、本政策的更新</h2>
+            <p>
+                我们可能会根据法律法规的更新、业务的调整或技术的发展，适时对本隐私政策进行修订。
+                修订后的政策将在本应用内显著位置公示，并在生效前通过合理方式通知您；
+                重大变更时将重新征求您的同意。如您继续使用本应用，即表示您同意接受修订后的政策。
+            </p>
+
+            <!-- ========== 八、联系我们 ========== -->
+            <h2>八、联系我们</h2>
+            <p>
+                如您对本隐私政策有任何疑问、意见或建议，或需要行使您的相关权利，请通过以下方式与我们联系：
+            </p>
+            <div class="contact-card">
+                <p><strong>运营主体</strong>：深圳丰佰瑞网络科技有限公司</p>
+                <p><strong>联系邮箱</strong>：Jp182025@163.com</p>
+            </div>
+
+            <!-- ========== 页脚 ========== -->
+            <div class="footer">
+                <p>感谢你选择问月塔罗。</p>
+                <p>愿每一次抽牌，都是与真实自己的温柔对话。</p>
+                <p>© 2026 深圳丰佰瑞网络科技有限公司 版权所有</p>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
