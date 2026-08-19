@@ -5,241 +5,119 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
-    inputs:
-      build_type:
-        description: '构建类型：debug / release / both'
-        required: false
-        default: 'both'
-        type: choice
-        options:
-          - debug
-          - release
-          - both
-
-env:
-  ANDROID_COMPILE_SDK: '34'
-  ANDROID_BUILD_TOOLS: '34.0.0'
-  # GitHub Actions Runner 已经弃用 Node 20；Node 22 是 Capacitor 8.x 要求
-  # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
 
 jobs:
   build-android:
-    name: 构建 Android APK (Debug + Release)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
-      # ============================================================
-      # 1. 检出源码
-      # ============================================================
-      - name: 📥 检出源码
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build web app
+      run: npm run build
+    
+    - name: Sync web resources to Android
+      run: npx cap sync android
+    
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'adopt'
+        java-version: '21'
+    
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+    
+    - name: Make gradlew executable
+      run: chmod +x ./android/gradlew
 
-      # ============================================================
-      # 2. Node.js 22 (Capacitor 8.x CLI 要求 >= 22)
-      # ============================================================
-      - name: ⚙️ 设置 Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
+    - name: Create keystore file from GitHub Secrets
+      run: |
+        cd android
+        if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+          echo "Error: KEYSTORE_BASE64 secret is not set"
+          exit 1
+        fi
+        if [ -f "my-release-key.keystore" ]; then
+          rm -f my-release-key.keystore
+        fi
+        echo "Creating keystore file from GitHub Secrets"
+        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > my-release-key.keystore
+        echo "=== Listing aliases in keystore ==="
+        keytool -list -keystore my-release-key.keystore -storepass "${{ secrets.KEYSTORE_PASSWORD }}"
+        echo "=== Keystore file details ==="
+        ls -la my-release-key.keystore
+        file my-release-key.keystore
 
-      - name: 📦 安装依赖 (npm ci)
-        run: npm ci
+    - name: Extract SHA1 from keystore
+      run: |
+        cd android
+        echo "Run # 将 base64 编码的 keystore 还原为文件"
+        echo "# 将 base64 编码的 keystore 还原为文件"
+        echo ""
+        full_output=$(keytool -list -v -keystore my-release-key.keystore -alias wenyuetaluo -storepass "${{ secrets.KEYSTORE_PASSWORD }}")
+        
+        sha1_with_colons=$(echo "$full_output" | grep -i "sha1:" | head -1 | sed 's/.*sha1:\s*//i' | sed 's/\s*$//')
+        sha256_with_colons=$(echo "$full_output" | grep -i "sha256:" | head -1 | sed 's/.*sha256:\s*//i' | sed 's/\s*$//')
+        md5_with_colons=$(echo "$full_output" | grep -i "md5:" | head -1 | sed 's/.*md5:\s*//i' | sed 's/\s*$//')
+        
+        echo "===== 证书指纹 ====="
+        echo "     SHA1: $sha1_with_colons"
+        echo "     SHA256: $sha256_with_colons"
+        echo "===================="
+        echo ""
+        echo "===== MD5 指纹 ====="
+        echo "$md5_with_colons"
+        echo "===================="
+        echo ""
+        echo "===== SHA1 指纹（小米应用商店用）====="
+        echo "$sha1_with_colons"
+        echo "======================================="
+        echo ""
+        echo "===== 去掉冒号的 SHA1（直接复制）====="
+        sha1_without_colons=$(echo "$sha1_with_colons" | tr -d ":")
+        echo "$sha1_without_colons"
+        echo "======================================="
+        echo ""
+        echo "===== 公钥信息 ====="
+        echo "Certificate fingerprints:"
+        echo "     SHA1: $sha1_with_colons"
+        echo "     SHA256: $sha256_with_colons"
+        signature_algorithm=$(echo "$full_output" | grep -i "Signature algorithm name" | head -1 | sed 's/.*://' | sed 's/\s*$//')
+        echo "Signature algorithm name: $signature_algorithm"
+        echo "============================="
 
-      # ============================================================
-      # 3. 构建前端 + 同步到 Capacitor
-      # ============================================================
-      - name: 🛠 构建前端 (Vite)
-        run: npm run build
-        env:
-          NODE_OPTIONS: '--max-old-space-size=4096'
+    - name: Build Android Release APK
+      run: |
+        cd android
+        echo "=== Building Release APK ==="
+        ./gradlew clean
+        ./gradlew assembleRelease --no-build-cache --no-daemon -Pandroid.injected.signing.store.file=my-release-key.keystore -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" -Pandroid.injected.signing.key.alias=wenyuetaluo -Pandroid.injected.signing.key.password="${{ secrets.KEYSTORE_PASSWORD }}"
+        ls -la app/build/outputs/apk/release/
 
-      - name: 🔌 同步构建产物到 Capacitor (cap sync android)
-        run: npx cap sync android
-
-      # ============================================================
-      # 4. Java 17 (Android Gradle Plugin 8.x 要求)
-      # ============================================================
-      - name: ☕ 设置 JDK 17 (Temurin / Adoptium)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
-
-      # ============================================================
-      # 5. Android SDK (显式指定 compileSdk & build-tools)
-      # ============================================================
-      - name: 🤖 设置 Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: >-
-            platforms;android-${{ env.ANDROID_COMPILE_SDK }}
-            build-tools;${{ env.ANDROID_BUILD_TOOLS }}
-
-      - name: 🛂 gradlew 可执行权限
-        run: chmod +x ./android/gradlew
-
-      # ============================================================
-      # 6. 准备 Release 签名 keystore (从 GitHub Secrets 注入)
-      #    - 若 Secrets 未配置：不报错，跳过 Release，仅继续 Debug
-      # ============================================================
-      - name: 🔑 准备 Release 签名 keystore
-        id: prepare_keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        run: |
-          set -e
-          cd android
-
-          # 兼容之前的旧命名；只要任一存在就用
-          if [ -z "$KEYSTORE_PASSWORD" ]; then
-            KEYSTORE_PASSWORD="${{ secrets.ALIAS_PASSWORD }}"
-          fi
-
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "⚠️ 未检测到 KEYSTORE_BASE64 Secret → 跳过 Release 构建，仅构建 Debug"
-            echo "release_enabled=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "release_enabled=true" >> "$GITHUB_OUTPUT"
-
-          # 还原 keystore 文件 (输出到 android/ 根，与 -Pandroid.injected.signing.store.file 相对路径匹配)
-          KS_FILE="my-release-key.keystore"
-          [ -f "$KS_FILE" ] && rm -f "$KS_FILE"
-          echo "📝 从 GitHub Secrets 还原 keystore 文件 -> $KS_FILE"
-          echo "$KEYSTORE_BASE64" | base64 -d > "$KS_FILE"
-
-          echo "--- keystore 文件信息 ---"
-          ls -la "$KS_FILE"
-          file "$KS_FILE" 2>/dev/null || true
-
-          if [ -n "$KEYSTORE_PASSWORD" ]; then
-            echo "--- 列出 keystore 别名（校验密码有效性）---"
-            keytool -list -keystore "$KS_FILE" -storepass "$KEYSTORE_PASSWORD"
-          fi
-
-      # ============================================================
-      # 7. keystore 证书指纹 (仅 Release 模式)
-      # ============================================================
-      - name: 🔍 导出证书指纹 (SHA1 / SHA256 / MD5)
-        if: steps.prepare_keystore.outputs.release_enabled == 'true'
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        run: |
-          set -e
-          cd android
-          ALIAS="wenyuetaluo"
-
-          PASS_ARG=""
-          if [ -n "$KEYSTORE_PASSWORD" ]; then
-            PASS_ARG="-storepass $KEYSTORE_PASSWORD"
-          fi
-
-          echo "# 查询 alias=$ALIAS 的证书指纹"
-          full_output=$(keytool -list -v -keystore my-release-key.keystore -alias "$ALIAS" $PASS_ARG 2>&1) || true
-
-          sha1_with_colons=$(echo "$full_output"   | grep -i "sha1:"   | head -1 | sed 's/.*sha1:\s*//i'   | sed 's/\s*$//')
-          sha256_with_colons=$(echo "$full_output" | grep -i "sha256:" | head -1 | sed 's/.*sha256:\s*//i' | sed 's/\s*$//')
-          md5_with_colons=$(echo "$full_output"    | grep -i "md5:"    | head -1 | sed 's/.*md5:\s*//i'    | sed 's/\s*$//')
-          sig_algo=$(echo "$full_output"           | grep -i "Signature algorithm name:" | head -1 | sed 's/.*://' | sed 's/\s*$//')
-
-          echo "===== 证书指纹 ====="
-          echo "  SHA1:       $sha1_with_colons"
-          echo "  SHA256:     $sha256_with_colons"
-          echo "  MD5:        $md5_with_colons"
-          echo "  签名算法:   $sig_algo"
-          echo ""
-          echo "===== 各应用商店需要的 SHA1（去除冒号）====="
-          echo "  小米 / 华为 / 百度 / 极光推送等场景直接复制:"
-          sha1_no_colons=$(echo "$sha1_with_colons" | tr -d ":")
-          echo "  $sha1_no_colons"
-
-      # ============================================================
-      # 8. Gradle 构建 (Debug + 可选 Release 一次性跑，共享 build-cache)
-      # ============================================================
-      - name: 🏗 Gradle 构建 APK
-        id: gradle_build
-        env:
-          GRADLE_OPTS: '-Dorg.gradle.jvmargs="-Xmx4096m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"'
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        run: |
-          set -e
-          cd android
-
-          RELEASE_ENABLED="${{ steps.prepare_keystore.outputs.release_enabled }}"
-          WANTED="${{ github.event.inputs.build_type }}"
-          if [ -z "$WANTED" ]; then WANTED="both"; fi
-
-          TASKS=""
-          BUILD_DEBUG="false"
-          BUILD_RELEASE="false"
-
-          if [ "$WANTED" = "debug" ] || [ "$WANTED" = "both" ]; then
-            TASKS="assembleDebug $TASKS"
-            BUILD_DEBUG="true"
-          fi
-          if [ "$WANTED" = "release" ] || [ "$WANTED" = "both" ]; then
-            if [ "$RELEASE_ENABLED" != "true" ]; then
-              echo "⚠️ 请求 Release 构建，但签名密钥未配置 → 跳过 Release"
-            else
-              TASKS="assembleRelease $TASKS"
-              BUILD_RELEASE="true"
-              export SIGNING_STORE_FILE="my-release-key.keystore"
-              export SIGNING_STORE_PASSWORD="$KEYSTORE_PASSWORD"
-              export SIGNING_KEY_ALIAS="wenyuetaluo"
-              export SIGNING_KEY_PASSWORD="$KEYSTORE_PASSWORD"
-            fi
-          fi
-
-          if [ -z "$TASKS" ]; then
-            echo "❌ 没有需要执行的构建任务 (WANTED=$WANTED RELEASE_ENABLED=$RELEASE_ENABLED)"
-            exit 1
-          fi
-
-          echo "build_debug=$BUILD_DEBUG"   >> "$GITHUB_OUTPUT"
-          echo "build_release=$BUILD_RELEASE" >> "$GITHUB_OUTPUT"
-
-          echo ">>> ./gradlew --no-daemon $TASKS"
-          ./gradlew --no-daemon $TASKS --stacktrace
-
-          echo ""
-          echo "--- 构建产物清单 ---"
-          find app/build/outputs/apk -type f \( -name '*.apk' -o -name '*.aab' \) -print0 | xargs -0 ls -la 2>/dev/null || echo "(未找到 APK 输出)"
-
-      # ============================================================
-      # 9. 上载 APK 工件
-      # ============================================================
-      - name: 📦 上载 Debug APK
-        if: steps.gradle_build.outputs.build_debug == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: wenyuetaluo-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: 📦 上载 Release APK
-        if: steps.gradle_build.outputs.build_release == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: wenyuetaluo-release-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
-          if-no-files-found: warn
-          retention-days: 30
-
-      - name: 📋 构建结果摘要
-        run: |
-          echo "## 问月塔罗 APK 构建完成 🌙"
-          echo ""
-          echo "- Debug 构建: ${{ steps.gradle_build.outputs.build_debug }}"
-          echo "- Release 构建: ${{ steps.gradle_build.outputs.build_release }}"
-          echo "- Release 签名可用: ${{ steps.prepare_keystore.outputs.release_enabled }}"
-          echo ""
-          echo "下载入口：当前 Action Run → Artifacts 区块 (wenyuetaluo-debug-apk / wenyuetaluo-release-apk)"
+    - name: Build Android Debug APK
+      run: |
+        cd android
+        ./gradlew assembleDebug
+    
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug
+        path: android/app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 30
+    
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release
+        path: android/app/build/outputs/apk/release/app-release.apk
+        retention-days: 30
