@@ -56,6 +56,9 @@ jobs:
         echo "=== Keystore file details ==="
         ls -la my-release-key.keystore
         file my-release-key.keystore
+        cp my-release-key.keystore app/my-release-key.keystore
+        echo "Copied to app/my-release-key.keystore:"
+        ls -la app/my-release-key.keystore
 
     - name: Extract SHA1 from keystore
       run: |
